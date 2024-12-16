@@ -15,6 +15,20 @@ votes = {}  # Voting dictionary (key: URL, value: votes)
 # Lock for thread safety
 queue_lock = threading.Lock()
 
+# Function to search YouTube and get the first result URL
+def search_youtube(query):
+    ydl_opts = {
+        'quiet': True,
+        'extract_flat': True,  # Only get video URL, no need to download
+        'default_search': 'ytsearch',  # Set default search type to YouTube search
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        result = ydl.extract_info(query, download=False)
+        if 'entries' in result:
+            video = result['entries'][0]  # Get the first video
+            return video['url']
+    return None
+    
 # Function to download a song and fetch metadata
 def download_song(url):
     ydl_opts = {
@@ -54,8 +68,13 @@ def add_song():
     data = request.json
     url = data.get('url')
 
-    if not url:
+       if not url:
         return jsonify({'error': 'URL is required'}), 400
+
+    if 'youtube.com' not in url:  # If it's not a URL, search for the song
+        url = search_youtube(url)
+        if not url:
+            return jsonify({'error': 'No video found for the search query'}), 404
 
     # Download and get metadata
     with queue_lock:
