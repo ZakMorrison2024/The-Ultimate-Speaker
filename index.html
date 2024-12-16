@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Party Speaker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .queue-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .queue-item span {
+            flex-grow: 1;
+        }
+        button {
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Party Speaker</h1>
+    <div id="player-container">
+        <video id="videoPlayer" controls autoplay style="width: 100%;"></video>
+    </div>
+    <h2>Queue</h2>
+    <div id="queueList"></div>
+
+    <script>
+        const videoPlayer = document.getElementById('videoPlayer');
+        const queueList = document.getElementById('queueList');
+
+        function fetchQueue() {
+            fetch('/queue')
+                .then(response => response.json())
+                .then(queue => {
+                    queueList.innerHTML = ''; // Clear current queue display
+                    queue.forEach((item, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'queue-item';
+                        div.innerHTML = `
+                            <span>${index + 1}. ${item.title} (${item.url})</span>
+                            <div>
+                                <button onclick="vote('${item.url}', 'up')">👍</button>
+                                <button onclick="vote('${item.url}', 'down')">👎</button>
+                            </div>
+                        `;
+                        queueList.appendChild(div);
+                    });
+
+                    // Play the first song in the queue
+                    if (queue.length > 0 && videoPlayer.src !== queue[0].play_url) {
+                        videoPlayer.src = queue[0].play_url;
+                    }
+                });
+        }
+
+        function vote(url, direction) {
+            fetch('/vote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url, vote: direction })
+            }).then(fetchQueue);
+        }
+
+        // Load the queue on page load
+        fetchQueue();
+    </script>
+</body>
+</html>
